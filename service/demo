@@ -1,0 +1,88 @@
+#! /bin/sh
+#
+# chkconfig: - 84 16
+# description: your description
+# processname: demo
+
+# Source function library.
+. ./functions
+
+# Check that networking is up.
+. /etc/sysconfig/network
+
+if [ "$NETWORKING" = "no" ]
+then
+	exit 0
+fi
+
+RETVAL=0
+prog="demo"
+demo=/path/to/your/bin/file
+config=/path/to/your/config/file
+pidfile=${PIDFILE-/var/run/demo.pid}
+lockfile=${LOCKFILE-/var/lock/subsys/demo}
+
+
+start () {
+	echo -n $"Starting $prog: "
+        if [ -e $pidfile ]; then
+            failure
+        else
+            ${demo} -c ${config}
+            RETVAL=$?
+	    [ $RETVAL -eq 0 ] && success; touch ${lockfile}
+        fi
+       echo
+}
+stop () {
+	echo -n $"Stopping $prog: "
+	killproc -p ${pidfile} ${demo}
+	RETVAL=$?
+	echo
+	if [ $RETVAL -eq 0 ] ; then
+		rm -f ${lockfile} ${pidfile}
+	fi
+}
+
+restart () {
+        stop
+        start
+}
+
+reload() {
+        if [ ! -f ${pidfile} ] ; then
+                echo "not running..."
+        else
+                pid=`cat ${pidfile}`
+                kill -s USR1 $pid
+                echo $"reloading success..."
+        fi
+        echo
+}
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  status)
+	status -p ${pidfile} ${demo}
+	RETVAL=$?
+	;;
+  restart)
+	restart
+	;;
+  reload)
+	reload
+	;;
+
+  *)
+	echo $"Usage: $0 {start|stop|status|restart|reload}"
+	RETVAL=2
+        ;;
+esac
+
+exit $RETVAL
